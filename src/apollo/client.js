@@ -6,8 +6,26 @@
 import { ApolloClient, InMemoryCache, createHttpLink } from '@apollo/client';
 import { setContext } from '@apollo/client/link/context';
 
-// GraphQL 服务端 URL - 可通过环境变量配置
-const GRAPHQL_URI = process.env.REACT_APP_GRAPHQL_URI || 'http://localhost:8787/graphql';
+// GraphQL 服务端 URL - 智能检测环境
+const getGraphQLURI = () => {
+  // 如果设置了环境变量，优先使用
+  if (process.env.REACT_APP_GRAPHQL_URI) {
+    return process.env.REACT_APP_GRAPHQL_URI;
+  }
+  
+  // 检测当前环境
+  const hostname = window.location.hostname;
+  
+  // 生产环境默认配置
+  if (hostname !== 'localhost' && hostname !== '127.0.0.1') {
+    return 'https://deepseek-graphql-worker.zhuyueseng.workers.dev/graphql';
+  }
+  
+  // 开发环境默认配置
+  return 'http://localhost:8787/graphql';
+};
+
+const GRAPHQL_URI = getGraphQLURI();
 
 // 创建 HTTP 链接
 const httpLink = createHttpLink({
