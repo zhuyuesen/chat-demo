@@ -68,6 +68,7 @@ chat-demo/
 │   ├── index.css            # 全局样式
 │   └── reportWebVitals.js   # 性能监控
 ├── package.json             # 项目配置
+├── package-lock.json        # 依赖锁文件
 ├── tailwind.config.js       # Tailwind配置
 ├── postcss.config.js        # PostCSS配置
 ├── .gitignore              # Git忽略文件
@@ -122,15 +123,14 @@ const simulateAIResponse = (userMessage) => {
 2. GitHub Actions自动构建并部署到GitHub Pages
 3. 访问：https://zhuyuesen.github.io/chat-demo
 
-### 手动部署
+### Cloudflare Pages
 
-```bash
-# 构建项目
-npm run build
+项目支持Cloudflare Pages部署：
 
-# 部署到GitHub Pages
-npm run deploy
-```
+1. 连接GitHub仓库到Cloudflare Pages
+2. 选择框架预设：`React static`
+3. 构建命令：`npm run build`
+4. 构建输出目录：`build`
 
 ### 其他平台
 
