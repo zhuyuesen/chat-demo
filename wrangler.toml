@@ -1,13 +1,9 @@
 name = "chat-demo"
 compatibility_date = "2025-08-09"
+pages_build_output_dir = "build"
 
 [build]
 command = "npm install && npm run build"
-cwd = ""
 
 [build.environment]
 NODE_VERSION = "18"
-
-[[build.upload]]
-format = "directory"
-dir = "build"
