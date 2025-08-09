@@ -1,19 +1,33 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, Bot, User, Copy, RotateCcw } from 'lucide-react';
+import { Send, Bot, User, Copy, RotateCcw, AlertCircle } from 'lucide-react';
+import { useMutation, useQuery } from '@apollo/client';
+import { CHAT_MUTATION, GET_MODELS_QUERY, HELLO_QUERY } from '../apollo/queries';
 
 const ChatDemo = () => {
   const [messages, setMessages] = useState([
     {
       id: 1,
-      content: "你好！我是AI助手，有什么可以帮助你的吗？",
+      content: "你好！我是DeepSeek AI助手，有什么可以帮助你的吗？",
       sender: "ai",
       timestamp: new Date().toLocaleTimeString('zh-CN', { hour12: false })
     }
   ]);
   const [inputMessage, setInputMessage] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
+  const [selectedModel, setSelectedModel] = useState('deepseek-chat');
+  const [connectionStatus, setConnectionStatus] = useState('connecting');
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
+
+  // GraphQL hooks
+  // eslint-disable-next-line no-unused-vars
+  const { data: helloData, error: helloError } = useQuery(HELLO_QUERY, {
+    onCompleted: () => setConnectionStatus('connected'),
+    onError: () => setConnectionStatus('error')
+  });
+  
+  const { data: modelsData, error: modelsError } = useQuery(GET_MODELS_QUERY);
+  
+  const [sendChatMessage, { loading: isLoading, error: chatError }] = useMutation(CHAT_MUTATION);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -23,22 +37,26 @@ const ChatDemo = () => {
     scrollToBottom();
   }, [messages]);
 
-  // 模拟AI回复
-  const simulateAIResponse = (userMessage) => {
-    const responses = [
-      "这是一个很有趣的问题！让我来为你分析一下...",
-      "我理解你的意思。根据我的知识，我认为...",
-      "感谢你的提问！这让我想到了几个要点：",
-      "这确实是一个值得思考的话题。我的观点是...",
-      "你提出了一个很好的问题！让我详细解释一下..."
-    ];
+  // 构建消息历史记录用于 GraphQL 请求
+  const buildChatHistory = (newUserMessage) => {
+    const chatHistory = messages
+      .filter(msg => msg.sender !== 'system') // 过滤掉系统消息
+      .map(msg => ({
+        role: msg.sender === 'user' ? 'USER' : 'ASSISTANT',
+        content: msg.content
+      }));
     
-    const randomResponse = responses[Math.floor(Math.random() * responses.length)];
-    return `${randomResponse}\n\n针对"${userMessage}"，我建议你可以从多个角度来考虑这个问题。如果你需要更具体的建议，请提供更多细节。`;
+    // 添加新的用户消息
+    chatHistory.push({
+      role: 'USER',
+      content: newUserMessage
+    });
+    
+    return chatHistory;
   };
 
   const handleSendMessage = async () => {
-    if (!inputMessage.trim()) return;
+    if (!inputMessage.trim() || isLoading) return;
 
     const userMessage = {
       id: Date.now(),
@@ -48,21 +66,51 @@ const ChatDemo = () => {
     };
 
     setMessages(prev => [...prev, userMessage]);
+    const currentInput = inputMessage;
     setInputMessage("");
-    setIsLoading(true);
 
-    // 模拟API调用延迟
-    setTimeout(() => {
-      const aiResponse = {
+    try {
+      // 构建聊天历史记录
+      const chatHistory = buildChatHistory(currentInput);
+      
+      // 发送 GraphQL 变更请求
+      const { data } = await sendChatMessage({
+        variables: {
+          input: {
+            messages: chatHistory,
+            model: selectedModel,
+            temperature: 0.7,
+            maxTokens: 2000
+          }
+        }
+      });
+
+      if (data?.chat?.message?.content) {
+        const aiResponse = {
+          id: Date.now() + 1,
+          content: data.chat.message.content,
+          sender: "ai",
+          timestamp: new Date().toLocaleTimeString('zh-CN', { hour12: false }),
+          model: data.chat.model,
+          usage: data.chat.usage
+        };
+        
+        setMessages(prev => [...prev, aiResponse]);
+      } else {
+        throw new Error('未收到有效回复');
+      }
+    } catch (error) {
+      console.error('发送消息失败:', error);
+      
+      const errorMessage = {
         id: Date.now() + 1,
-        content: simulateAIResponse(inputMessage),
-        sender: "ai",
+        content: `发送失败: ${error.message}`,
+        sender: "error",
         timestamp: new Date().toLocaleTimeString('zh-CN', { hour12: false })
       };
       
-      setMessages(prev => [...prev, aiResponse]);
-      setIsLoading(false);
-    }, 1000 + Math.random() * 2000);
+      setMessages(prev => [...prev, errorMessage]);
+    }
   };
 
   const handleKeyPress = (e) => {
@@ -80,12 +128,13 @@ const ChatDemo = () => {
     setMessages([
       {
         id: 1,
-        content: "你好！我是AI助手，有什么可以帮助你的吗？",
+        content: "你好！我是DeepSeek AI助手，有什么可以帮助你的吗？",
         sender: "ai",
         timestamp: new Date().toLocaleTimeString('zh-CN', { hour12: false })
       }
     ]);
   };
+
 
   return (
     <div className="flex flex-col h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
@@ -97,18 +146,40 @@ const ChatDemo = () => {
               <Bot className="w-6 h-6 text-white" />
             </div>
             <div>
-              <h1 className="text-xl font-bold text-gray-800">AI Chat Demo</h1>
-              <p className="text-sm text-gray-500">智能对话助手</p>
+              <h1 className="text-xl font-bold text-gray-800">DeepSeek Chat Demo</h1>
+              <div className="flex items-center space-x-2">
+                <p className="text-sm text-gray-500">智能对话助手</p>
+                {connectionStatus === 'connected' && (
+                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                )}
+                {(connectionStatus === 'error' || helloError || modelsError) && (
+                  <AlertCircle className="w-3 h-3 text-red-500" />
+                )}
+              </div>
             </div>
           </div>
-          <button
-            onClick={clearChat}
-            className="flex items-center space-x-2 px-4 py-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-            title="清空对话"
-          >
-            <RotateCcw className="w-4 h-4" />
-            <span className="hidden sm:inline">清空</span>
-          </button>
+          <div className="flex items-center space-x-3">
+            {modelsData?.models && (
+              <select
+                value={selectedModel}
+                onChange={(e) => setSelectedModel(e.target.value)}
+                className="px-3 py-1 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                title="选择模型"
+              >
+                {modelsData.models.map(model => (
+                  <option key={model} value={model}>{model}</option>
+                ))}
+              </select>
+            )}
+            <button
+              onClick={clearChat}
+              className="flex items-center space-x-2 px-4 py-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+              title="清空对话"
+            >
+              <RotateCcw className="w-4 h-4" />
+              <span className="hidden sm:inline">清空</span>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -124,13 +195,18 @@ const ChatDemo = () => {
             >
               <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
                 message.sender === 'user' 
-                  ? 'bg-gradient-to-r from-green-400 to-blue-500' 
+                  ? 'bg-gradient-to-r from-green-400 to-blue-500'
+                  : message.sender === 'error'
+                  ? 'bg-gradient-to-r from-red-400 to-red-500'
                   : 'bg-gradient-to-r from-purple-400 to-pink-500'
               }`}>
-                {message.sender === 'user' ? 
-                  <User className="w-4 h-4 text-white" /> : 
+                {message.sender === 'user' ? (
+                  <User className="w-4 h-4 text-white" />
+                ) : message.sender === 'error' ? (
+                  <AlertCircle className="w-4 h-4 text-white" />
+                ) : (
                   <Bot className="w-4 h-4 text-white" />
-                }
+                )}
               </div>
               
               <div className={`max-w-xs sm:max-w-md lg:max-w-lg xl:max-w-xl group ${
@@ -140,6 +216,8 @@ const ChatDemo = () => {
                   className={`relative px-4 py-3 rounded-2xl shadow-md ${
                     message.sender === 'user'
                       ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white'
+                      : message.sender === 'error'
+                      ? 'bg-red-50 text-red-800 border border-red-200'
                       : 'bg-white text-gray-800 border'
                   }`}
                 >
@@ -159,7 +237,13 @@ const ChatDemo = () => {
                 <div className={`text-xs text-gray-500 mt-1 ${
                   message.sender === 'user' ? 'text-right' : 'text-left'
                 }`}>
-                  {message.timestamp}
+                  <span>{message.timestamp}</span>
+                  {message.model && (
+                    <span className="ml-2">• {message.model}</span>
+                  )}
+                  {message.usage && (
+                    <span className="ml-2">• {message.usage.totalTokens} tokens</span>
+                  )}
                 </div>
               </div>
             </div>
@@ -210,9 +294,11 @@ const ChatDemo = () => {
             </button>
           </div>
           
-          <div className="mt-2 text-xs text-gray-500 text-center">
-            AI助手正在模拟回复中，这只是一个演示项目
-          </div>
+          {(helloError || modelsError || chatError) && (
+            <div className="mt-2 text-xs text-center text-red-500">
+              连接错误: {helloError?.message || modelsError?.message || chatError?.message}
+            </div>
+          )}
         </div>
       </div>
     </div>
