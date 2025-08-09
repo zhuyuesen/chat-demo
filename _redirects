@@ -1,0 +1,9 @@
+# Cloudflare Pages 项目配置文件
+# 这个文件强制指定构建设置，优先级高于Web界面设置
+
+[build]
+  command = "npm install && npm run build"
+  publish = "build"
+
+[build.environment]
+  NODE_VERSION = "18"
