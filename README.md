@@ -68,12 +68,13 @@ chat-demo/
 │   ├── index.css            # 全局样式
 │   └── reportWebVitals.js   # 性能监控
 ├── package.json             # 项目配置
-├── package-lock.json        # 依赖锁文件
 ├── tailwind.config.js       # Tailwind配置
 ├── postcss.config.js        # PostCSS配置
 ├── .gitignore              # Git忽略文件
 └── README.md               # 项目说明
 ```
+
+**注意**：项目故意不包含 `package-lock.json` 以避免版本冲突，让npm自动处理依赖解析。
 
 ## 🎮 功能说明
 
@@ -129,8 +130,8 @@ const simulateAIResponse = (userMessage) => {
 
 1. 连接GitHub仓库到Cloudflare Pages
 2. 选择框架预设：`React static`
-3. 构建命令：`npm run build`
-4. 构建输出目录：`build`
+3. **构建命令**：`npm install && npm run build`
+4. **构建输出目录**：`build`
 
 ### 其他平台
 
