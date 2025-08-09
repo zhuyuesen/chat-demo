@@ -1,0 +1,25 @@
+.App {
+  height: 100vh;
+  width: 100%;
+}
+
+/* 响应式设计 */
+@media (max-width: 640px) {
+  .message-container {
+    max-width: calc(100% - 60px);
+  }
+}
+
+/* 打字动画效果 */
+@keyframes typing {
+  from {
+    width: 0;
+  }
+  to {
+    width: 100%;
+  }
+}
+
+.typing-indicator {
+  animation: typing 2s steps(40, end);
+}
