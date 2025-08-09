@@ -68,6 +68,7 @@ chat-demo/
 │   ├── index.css            # 全局样式
 │   └── reportWebVitals.js   # 性能监控
 ├── package.json             # 项目配置
+├── wrangler.toml           # Cloudflare Pages配置
 ├── tailwind.config.js       # Tailwind配置
 ├── postcss.config.js        # PostCSS配置
 ├── .gitignore              # Git忽略文件
@@ -126,12 +127,11 @@ const simulateAIResponse = (userMessage) => {
 
 ### Cloudflare Pages
 
-项目支持Cloudflare Pages部署：
+项目包含 `wrangler.toml` 配置文件，支持自动部署：
 
 1. 连接GitHub仓库到Cloudflare Pages
-2. 选择框架预设：`React static`
-3. **构建命令**：`npm install && npm run build`
-4. **构建输出目录**：`build`
+2. Cloudflare Pages会自动读取 `wrangler.toml` 配置
+3. 自动使用正确的构建命令和设置
 
 ### 其他平台
 
