@@ -71,3 +71,6 @@ pids
 
 # FuseBox cache
 .fusebox/
+
+# Temporarily ignore package-lock.json for easier deployment
+package-lock.json
