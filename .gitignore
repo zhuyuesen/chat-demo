@@ -71,3 +71,6 @@ pids
 
 # FuseBox cache
 .fusebox/
+
+# Ignore package-lock.json for Cloudflare Pages compatibility
+package-lock.json
